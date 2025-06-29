@@ -30,7 +30,7 @@ struct Player {
 
     int health() const;
     int team() const;
-    int lifeState() const;
+    bool alive() const;
     Vector3 pos() const;
     Vector3 velocity() const;
     bool scoped() const;

@@ -49,6 +49,19 @@ bool ReadBool(uintptr_t Address) {
 }
 
 //Pointer manipulations
+uintptr_t ReadPointer(uintptr_t Address, int Offset) {
+    uintptr_t firstPass = *(uintptr_t*)(Address + Offset);
+    return firstPass;
+}
+
+uintptr_t ReadPointer(int Address, vector<int> Offsets) {
+    uintptr_t firstPass = Address;
+    for (int i = 0; i < Offsets.size(); ++i) {
+        firstPass = firstPass + Offsets[i];
+    }
+    return *(uintptr_t*)firstPass;
+}
+
 uintptr_t ReadPointer(HMODULE Module, int Address, vector<int> Offsets) {
     uintptr_t base = (uintptr_t)Module;
     uintptr_t firstPass = base + Address;
@@ -56,10 +69,5 @@ uintptr_t ReadPointer(HMODULE Module, int Address, vector<int> Offsets) {
     for (int i = 0; i < Offsets.size(); ++i) {
         firstPass = *(uintptr_t*)firstPass + Offsets[i];
     }
-    return firstPass;
-}
-
-uintptr_t ReadPointer(uintptr_t Address, int Offset) {
-    uintptr_t firstPass = *(uintptr_t*)Address + Offset;
     return firstPass;
 }

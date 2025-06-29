@@ -193,8 +193,8 @@ int lua_player_index(lua_State* L) {
         lua_pushinteger(L, proxy->player.team());
         return 1;
     }
-    if (strcmp(key, "lifeState") == 0) {
-        lua_pushinteger(L, proxy->player.lifeState());
+    if (strcmp(key, "alive") == 0) {
+        lua_pushboolean(L, proxy->player.alive());
         return 1;
     }
     if (strcmp(key, "pos") == 0) {
@@ -229,6 +229,9 @@ int lua_ents_LocalPlayer(lua_State* L) {
     if (local.pawnAddr) {
         push_player(L, local);
         return 1;
+    }
+    else {
+        printf("Local player huynya\n");
     }
     lua_pushnil(L);
     return 1;

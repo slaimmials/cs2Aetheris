@@ -1,4 +1,5 @@
 #include "game.h"
+#include <assert.h>
 
 int Player::health() const {
     return ReadInt(pawnAddr + offsets::C_BaseEntity::m_iHealth);
@@ -6,8 +7,8 @@ int Player::health() const {
 int Player::team() const {
     return ReadInt(pawnAddr + offsets::C_BaseEntity::m_iTeamNum);
 }
-int Player::lifeState() const {
-    return ReadInt(pawnAddr + offsets::C_BaseEntity::m_lifeState);
+bool Player::alive() const {
+    return ReadInt(pawnAddr + offsets::C_BaseEntity::m_lifeState)==256 ? true : false;
 }
 Vector3 Player::pos() const {
     return {
@@ -42,18 +43,19 @@ std::vector<Player> Ents::GetPlayers(bool skipLocal) const {
     for (int i = 0; i < 64; ++i) {
         if (!listEntry) continue;
         uintptr_t controller = ReadPointer(listEntry, i * 0x78);
-        if (!controller) continue;
+        if (controller == 0) continue;
 
         int pawnHandle = ReadInt(controller + offsets::C_CSPlayerController::m_hPlayerPawn);
-        if (!pawnHandle) continue;
+        if (pawnHandle == 0) continue;
 
         uintptr_t listEntry2 = ReadPointer(entityList, 0x8 * ((pawnHandle & 0x7FFF) >> 9) + 0x10);
+        if (listEntry2 == 0) continue;
+
         uintptr_t pawn = ReadPointer(listEntry2, 0x78 * (pawnHandle & 0x1FF));
-        if (!pawn) continue;
-        if (skipLocal && pawn == localPawn) continue;
+        if (pawn == localPawn) continue;
 
         Player player{ pawn, controller };
-        if (player.lifeState() != 0) continue; // 0 = alive
+        //if (player.lifeState() != 0) continue; // 0 = alive
         players.push_back(player);
     }
     return players;
