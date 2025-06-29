@@ -53,7 +53,7 @@ void UpdateStatus() {
 }
 
 void ImGuiHook::MainThread() {
-	CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UpdateStatus, nullptr, 0, nullptr);
+	//CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UpdateStatus, nullptr, 0, nullptr);
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);

@@ -160,15 +160,6 @@ void RegisterKeyConstants(lua_State* L) {
     lua_pushinteger(L, VK_XBUTTON2); lua_setglobal(L, "MOUSE_XBUTTON2"); // Боковая (X2)
 }
 
-// --- Register all API functions ---
-
-void RegisterFunctions(lua_State* L) {
-    lua_register(L, "wait", lua_wait);
-    lua_register(L, "MessageBox", lua_MessageBox);
-    RegisterInputTable(L);
-    RegisterKeyConstants(L);
-}
-
 // =====================
 // === GAME BINDINGS ===
 // =====================
@@ -193,7 +184,8 @@ int lua_player_index(lua_State* L) {
     LuaPlayerProxy* proxy = (LuaPlayerProxy*)luaL_checkudata(L, 1, LUA_PLAYER_MT);
     const char* key = luaL_checkstring(L, 2);
 
-    if (strcmp(key, "hp") == 0 || strcmp(key, "health") == 0) {
+    // Добавляем поля
+    if (strcmp(key, "health") == 0) {
         lua_pushinteger(L, proxy->player.health());
         return 1;
     }
@@ -217,30 +209,41 @@ int lua_player_index(lua_State* L) {
         lua_pushboolean(L, proxy->player.scoped());
         return 1;
     }
+    // ... другие поля если необходимо
+
     lua_pushnil(L);
     return 1;
 }
 
-// --- Lua: world.ents.LocalPlayer() ---
-int lua_ents_LocalPlayer(lua_State* L) {
+// --- Push Player as Lua userdata ---
+void push_player(lua_State* L, const Player& player) {
     LuaPlayerProxy* proxy = (LuaPlayerProxy*)lua_newuserdata(L, sizeof(LuaPlayerProxy));
-    proxy->player = world.ents.GetLocalPlayer();
+    new(proxy) LuaPlayerProxy{ player };
     luaL_getmetatable(L, LUA_PLAYER_MT);
     lua_setmetatable(L, -2);
+}
+
+// --- Lua: world.ents.LocalPlayer() ---
+int lua_ents_LocalPlayer(lua_State* L) {
+    Player local = world.ents.GetLocalPlayer();
+    if (local.pawnAddr) {
+        push_player(L, local);
+        return 1;
+    }
+    lua_pushnil(L);
     return 1;
 }
 
 // --- Lua: world.ents.GetPlayers() ---
 int lua_ents_GetPlayers(lua_State* L) {
-    auto players = world.ents.GetPlayers();
+    std::vector<Player> players = world.ents.GetPlayers();
     lua_newtable(L);
     int idx = 1;
     for (const auto& p : players) {
-        LuaPlayerProxy* proxy = (LuaPlayerProxy*)lua_newuserdata(L, sizeof(LuaPlayerProxy));
-        proxy->player = p;
-        luaL_getmetatable(L, LUA_PLAYER_MT);
-        lua_setmetatable(L, -2);
-        lua_seti(L, -2, idx++);
+        if (p.pawnAddr) {
+            push_player(L, p);
+            lua_rawseti(L, -2, idx++);
+        }
     }
     return 1;
 }
@@ -264,6 +267,15 @@ void RegisterWorldAPI(lua_State* L) {
     lua_pop(L, 1); // ents
 }
 
+// --- Register all API functions ---
+
+void RegisterFunctions(lua_State* L) {
+    lua_register(L, "wait", lua_wait);
+    lua_register(L, "MessageBox", lua_MessageBox);
+    RegisterInputTable(L);
+    RegisterKeyConstants(L);
+    RegisterWorldAPI(L);
+}
 
 // --- Coroutine launcher ---
 
@@ -310,7 +322,7 @@ void Lua::UpdateLuaCoroutines() {
 
 bool Lua::isGameReady() {
 	uintptr_t entityList = ReadPointer(world.ents.clientBase, offsets::dwEntityList);
-	if (!entityList) return false;
+	if (entityList != 0) return true;
     
-    return true;
+    return false;
 }

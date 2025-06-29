@@ -58,4 +58,10 @@ std::vector<Player> Ents::GetPlayers(bool skipLocal) const {
     }
     return players;
 }
-GameWorld world{ 0 };
+
+uintptr_t GetClientBase() {
+    HMODULE hClient = GetModuleHandleA("client.dll");
+    return reinterpret_cast<uintptr_t>(hClient);
+}
+
+GameWorld world{ GetClientBase() };
