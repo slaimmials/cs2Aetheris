@@ -18,6 +18,8 @@ int ReadInt(uintptr_t Address);
 float ReadFloat(uintptr_t Address);
 double ReadDouble(uintptr_t Address);
 bool ReadBool(uintptr_t Address);
+float* ReadMatrix(uintptr_t Address);
+uint8_t* ReadBytes(uintptr_t address, int bytes);
 
 uintptr_t ReadPointer(HMODULE Module, int Address, std::vector<int> Offsets);
 uintptr_t ReadPointer(uintptr_t Address, int Offset);

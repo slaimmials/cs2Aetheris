@@ -21,6 +21,7 @@ void ImGuiHook::Render() {
 	float radius = 5.0f;
 	float y_center = title_pos.y + ImGui::CalcTextSize("Aetheris").y * 0.5f + 3.5f;
 	float x_offset = ImGui::CalcTextSize("Aetheris").x + 12.f;
+	
 	ImGui::GetOverlayDrawList()->AddCircleFilled(
 		ImVec2(title_pos.x + x_offset, y_center),
 		radius,
@@ -36,11 +37,21 @@ void ImGuiHook::Render() {
 	settings::codePanelSize = ImVec2(content_size.x, content_size.y - btnHeight);
 	editor.Render("LuaScriptEditor", settings::codePanelSize);
 
-	if (ImGui::Button("Execute")) {
+	if (ImGui::Button("Execute") && settings::injected) {
 		std::string code = editor.GetText();
 		Lua::Execute(code.c_str());
 	}
+	else if (ImGui::Button("Execute") && !settings::injected) {
+		ImGui::OpenPopup("Not Injected");
+	}
+	
+	DrawGui();
 
+	ImGui::End();
+
+	ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiCond_FirstUseEver);
+	ImGui::Begin("Debug");
+	ImGui::Text("Rects count: %d", g_drawRects.size());
 	ImGui::End();
 }
 
@@ -53,7 +64,7 @@ void UpdateStatus() {
 }
 
 void ImGuiHook::MainThread() {
-	//CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UpdateStatus, nullptr, 0, nullptr);
+	CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UpdateStatus, nullptr, 0, nullptr);
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);

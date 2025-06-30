@@ -47,6 +47,16 @@ double ReadDouble(uintptr_t Address) {
 bool ReadBool(uintptr_t Address) {
     return *reinterpret_cast<bool*>(Address);
 }
+float* ReadMatrix(uintptr_t Address) {
+    float* matrix = new float[16];
+    std::memcpy(matrix, reinterpret_cast<const void*>(Address), sizeof(float) * 16);
+    return matrix;
+}
+uint8_t* ReadBytes(uintptr_t address, int bytes) {
+    uint8_t* buffer = new uint8_t[bytes];
+    std::memcpy(buffer, reinterpret_cast<const void*>(address), bytes);
+	return buffer;
+}
 
 //Pointer manipulations
 uintptr_t ReadPointer(uintptr_t Address, int Offset) {

@@ -3,6 +3,7 @@
 #include <vector>
 #include <Windows.h>
 #include "engine.h"
+#include "lua.hpp"
 #include "../memoryModule.h"
 
 // Векторные структуры
@@ -16,6 +17,13 @@ struct Vector3 {
     float x = 0, y = 0, z = 0;
     Vector3() = default;
     Vector3(float x, float y, float z) : x(x), y(y), z(z) {}
+};
+
+// Цветовая структура
+struct Color {
+	uint8_t r = 255, g = 255, b = 255, a = 255;
+	Color() = default;
+	Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) : r(r), g(g), b(b), a(a) {}
 };
 
 // Игрок-прокси
@@ -49,7 +57,10 @@ struct Ents {
 // Глобальный мир
 struct GameWorld {
     Ents ents;
+	bool isLoaded() const;
     GameWorld(uintptr_t base) : ents(base) {}
 };
 
 extern GameWorld world;
+
+void RegisterWorldAPI(lua_State* L);

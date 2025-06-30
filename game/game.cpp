@@ -1,5 +1,8 @@
 #include "game.h"
+#include "lua_additions.hpp"
 #include <assert.h>
+#include <cctype>
+#include <algorithm>
 
 int Player::health() const {
     return ReadInt(pawnAddr + offsets::C_BaseEntity::m_iHealth);
@@ -66,4 +69,148 @@ uintptr_t GetClientBase() {
     return reinterpret_cast<uintptr_t>(hClient);
 }
 
+bool GameWorld::isLoaded() const {
+    uintptr_t localPawn = ReadPointer(GetClientBase(), offsets::dwLocalPlayerPawn);
+    //for other debug things, you know :)
+	//std::string hexAddr = int_to_hex(localPawn);
+    //std::transform(hexAddr.begin(), hexAddr.end(), hexAddr.begin(),
+    //    [](unsigned char c) { return std::toupper(c); });
+    //printf("0x%s", hexAddr.c_str());
+	return !localPawn==0;
+}
+
 GameWorld world{ GetClientBase() };
+
+static const char* LUA_PLAYER_MT = "MetaPlayer";
+
+// --- Lua Player Proxy Userdata ---
+struct LuaPlayerProxy {
+    Player player;
+};
+
+// --- __index for Player proxy ---
+int lua_player_index(lua_State* L) {
+    LuaPlayerProxy* proxy = (LuaPlayerProxy*)luaL_checkudata(L, 1, LUA_PLAYER_MT);
+    const char* key = luaL_checkstring(L, 2);
+
+    // Добавляем поля
+    if (strcmp(key, "health") == 0) {
+        lua_pushinteger(L, proxy->player.health());
+        return 1;
+    }
+    if (strcmp(key, "team") == 0) {
+        lua_pushinteger(L, proxy->player.team());
+        return 1;
+    }
+    if (strcmp(key, "alive") == 0) {
+        lua_pushboolean(L, proxy->player.alive());
+        return 1;
+    }
+    if (strcmp(key, "pos") == 0) {
+        push_vec3(L, proxy->player.pos());
+        return 1;
+    }
+    if (strcmp(key, "velocity") == 0) {
+        push_vec3(L, proxy->player.velocity());
+        return 1;
+    }
+    if (strcmp(key, "scoped") == 0) {
+        lua_pushboolean(L, proxy->player.scoped());
+        return 1;
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// --- Push Player as Lua userdata ---
+void push_player(lua_State* L, const Player& player) {
+    LuaPlayerProxy* proxy = (LuaPlayerProxy*)lua_newuserdata(L, sizeof(LuaPlayerProxy));
+    new(proxy) LuaPlayerProxy{ player };
+    luaL_getmetatable(L, LUA_PLAYER_MT);
+    lua_setmetatable(L, -2);
+}
+
+// --- Lua: world.ents.LocalPlayer() ---
+int lua_ents_LocalPlayer(lua_State* L) {
+    Player local = world.ents.GetLocalPlayer();
+    if (local.pawnAddr) {
+        push_player(L, local);
+        return 1;
+    }
+    else {
+        printf("Local player huynya\n");
+    }
+    lua_pushnil(L);
+    return 1;
+}
+
+// --- Lua: world.ents.GetPlayers() ---
+int lua_ents_GetPlayers(lua_State* L) {
+    std::vector<Player> players = world.ents.GetPlayers();
+    lua_newtable(L);
+    int idx = 1;
+    for (const auto& p : players) {
+        if (p.pawnAddr) {
+            push_player(L, p);
+            lua_rawseti(L, -2, idx++);
+        }
+    }
+    return 1;
+}
+
+// --- Register world/ents in Lua ---
+void RegisterWorldAPI(lua_State* L) {
+    // Player metatable
+    luaL_newmetatable(L, LUA_PLAYER_MT);
+    lua_pushcfunction(L, lua_player_index); lua_setfield(L, -2, "__index");
+    lua_pop(L, 1);
+
+    // ents table
+    lua_newtable(L);
+    lua_pushcfunction(L, lua_ents_LocalPlayer); lua_setfield(L, -2, "LocalPlayer");
+    lua_pushcfunction(L, lua_ents_GetPlayers); lua_setfield(L, -2, "GetPlayers");
+
+    // world table
+    lua_newtable(L);
+    lua_pushvalue(L, -2); lua_setfield(L, -2, "ents");
+    lua_setglobal(L, "world");
+    lua_pop(L, 1); // ents
+
+    // color, vectors
+    lua_pushcfunction(L, [](lua_State* L) {
+        int r = luaL_checknumber(L, 1);
+        int g = luaL_checknumber(L, 2);
+        int b = luaL_checknumber(L, 3);
+        int a = luaL_optnumber(L, 4, 255);
+        lua_newtable(L);
+        lua_pushnumber(L, r); lua_setfield(L, -2, "r");
+        lua_pushnumber(L, g); lua_setfield(L, -2, "g");
+        lua_pushnumber(L, b); lua_setfield(L, -2, "b");
+        lua_pushnumber(L, a); lua_setfield(L, -2, "a");
+        return 1;
+        });
+    lua_setglobal(L, "Color");
+
+    lua_pushcfunction(L, [](lua_State* L) {
+        float x = luaL_checknumber(L, 1);
+        float y = luaL_checknumber(L, 2);
+        lua_newtable(L);
+        lua_pushnumber(L, x); lua_setfield(L, -2, "x");
+        lua_pushnumber(L, y); lua_setfield(L, -2, "y");
+        return 1;
+        });
+    lua_setglobal(L, "Vector2");
+
+    lua_pushcfunction(L, [](lua_State* L) {
+        float x = luaL_checknumber(L, 1);
+        float y = luaL_checknumber(L, 2);
+        float z = luaL_checknumber(L, 3);
+        lua_newtable(L);
+        lua_pushnumber(L, x); lua_setfield(L, -2, "x");
+        lua_pushnumber(L, y); lua_setfield(L, -2, "y");
+        lua_pushnumber(L, z); lua_setfield(L, -2, "z");
+        return 1;
+        });
+    lua_setglobal(L, "Vector3");
+}
