@@ -14,21 +14,21 @@ bool Player::alive() const {
     return ReadInt(pawnAddr + offsets::C_BaseEntity::m_lifeState)==256 ? true : false;
 }
 Vector3 Player::pos() const {
-    return {
-        ReadFloat(pawnAddr + offsets::C_BasePlayerPawn::m_vOldOrigin),
-        ReadFloat(pawnAddr + offsets::C_BasePlayerPawn::m_vOldOrigin + 0x4),
-        ReadFloat(pawnAddr + offsets::C_BasePlayerPawn::m_vOldOrigin + 0x8)
-    };
+    Vector3 position = ReadVec3(pawnAddr + offsets::C_BasePlayerPawn::m_vOldOrigin);
+    return position;
 }
 Vector3 Player::velocity() const {
-    return {
-        ReadFloat(pawnAddr + offsets::C_BaseEntity::m_vecVelocity),
-        ReadFloat(pawnAddr + offsets::C_BaseEntity::m_vecVelocity + 0x4),
-        ReadFloat(pawnAddr + offsets::C_BaseEntity::m_vecVelocity + 0x8)
-    };
+    Vector3 velocity = ReadVec3(pawnAddr + offsets::C_BaseEntity::m_vecVelocity);
+    return velocity;
 }
 bool Player::scoped() const {
     return ReadBool(pawnAddr + offsets::C_CSPlayerPawn::m_bIsScoped);
+}
+
+std::string Player::name() const {
+    std::string name = ReadString(controllerAddr + offsets::CBasePlayerController::m_iszPlayerName, 16);
+	if (name.empty()) return "";
+    return name;
 }
 
 Player Ents::GetLocalPlayer() const {
@@ -58,7 +58,6 @@ std::vector<Player> Ents::GetPlayers(bool skipLocal) const {
         if (pawn == localPawn) continue;
 
         Player player{ pawn, controller };
-        //if (player.lifeState() != 0) continue; // 0 = alive
         players.push_back(player);
     }
     return players;
@@ -118,7 +117,10 @@ int lua_player_index(lua_State* L) {
         lua_pushboolean(L, proxy->player.scoped());
         return 1;
     }
-
+    if (strcmp(key, "name") == 0) {
+        lua_pushstring(L, proxy->player.name().c_str());
+        return 1;
+    }
     lua_pushnil(L);
     return 1;
 }
@@ -139,7 +141,7 @@ int lua_ents_LocalPlayer(lua_State* L) {
         return 1;
     }
     else {
-        printf("Local player huynya\n");
+        printf("Local player is huinya\n");
     }
     lua_pushnil(L);
     return 1;

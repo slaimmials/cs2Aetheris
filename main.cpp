@@ -37,12 +37,15 @@ void ImGuiHook::Render() {
 	settings::codePanelSize = ImVec2(content_size.x, content_size.y - btnHeight);
 	editor.Render("LuaScriptEditor", settings::codePanelSize);
 
-	if (ImGui::Button("Execute") && settings::injected) {
-		std::string code = editor.GetText();
-		Lua::Execute(code.c_str());
-	}
-	else if (ImGui::Button("Execute") && !settings::injected) {
-		ImGui::OpenPopup("Not Injected");
+	bool executePressed = ImGui::Button("Execute");
+	if (executePressed) {
+		if (settings::injected) {
+			std::string code = editor.GetText();
+			Lua::Execute(code.c_str());
+		}
+		else {
+			ImGui::SetTooltip("Join in the game!");
+		}
 	}
 	
 	DrawGui();

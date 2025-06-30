@@ -33,6 +33,18 @@ void WriteBool(uintptr_t Address, bool Value) {
     *reinterpret_cast<bool*>(Address) = Value;
     std::cout << int_to_hex(Address) << " => (bool) " << std::boolalpha << Value << std::endl;
 }
+void WriteVec2(uintptr_t Address, Vector2 v) {
+	for (int i = 0; i < 2; i++) {
+		*reinterpret_cast<float*>(Address + sizeof(float) * i) = (i == 0) ? v.x : v.y;
+	}
+}
+void WriteVec3(uintptr_t Address, Vector3 v) {
+	for (int i = 0; i < 3; i++) {
+		*reinterpret_cast<float*>(Address + sizeof(float) * i) = 
+            (i == 0) ? v.x : 
+            (i == 1) ? v.y : v.z;
+	}
+}
 
 //READS
 int ReadInt(uintptr_t Address) {
@@ -56,6 +68,30 @@ uint8_t* ReadBytes(uintptr_t address, int bytes) {
     uint8_t* buffer = new uint8_t[bytes];
     std::memcpy(buffer, reinterpret_cast<const void*>(address), bytes);
 	return buffer;
+}
+std::string ReadString(uintptr_t address, int size) {
+    char* buffer = new char[size + 1];
+    std::memcpy(buffer, reinterpret_cast<const void*>(address), size);
+    buffer[size] = '\0';
+
+    size_t realLen = strnlen(buffer, size);
+    std::string result(buffer, realLen);
+
+    delete[] buffer;
+    return result;
+}
+Vector2 ReadVec2(uintptr_t Address) {
+	Vector2 v;
+	v.x = ReadFloat(Address);
+	v.y = ReadFloat(Address + sizeof(float));
+	return v;
+}
+Vector3 ReadVec3(uintptr_t Address) {
+	Vector3 v;
+	v.x = ReadFloat(Address);
+	v.y = ReadFloat(Address + sizeof(float));
+	v.z = ReadFloat(Address + sizeof(float)*2);
+	return v;
 }
 
 //Pointer manipulations

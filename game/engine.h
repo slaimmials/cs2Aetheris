@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <iostream>
 
+#define PI 3.14159265358979323846
+
 namespace offsets
 {
     constexpr std::ptrdiff_t dwEntityList = 0x1A020A8;

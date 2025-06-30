@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include "game/game.h"
 #include "game/drawing.h"
-#include "game/math2.h"
+#include "game/view.h"
 #include "game/lua_additions.hpp"
 
 extern "C" {
