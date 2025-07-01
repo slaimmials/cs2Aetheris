@@ -3,7 +3,7 @@
 #include <chrono>
 #include <vector>
 #include <windows.h>
-#include <ctime>
+#include <ctime> 
 
 // --- Coroutine manager ---
 
@@ -14,6 +14,7 @@ struct ScriptCoroutine {
 };
 
 std::vector<ScriptCoroutine> g_coroutines;
+static lua_State* main_L = nullptr;
 
 double CurrentTime() {
     return static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
@@ -174,33 +175,37 @@ void RegisterFunctions(lua_State* L) {
     RegisterWorldAPI(L);
     RegisterDrawingAPI(L);
     RegisterViewAPI(L);
+    register_lua_hooks(L);
 }
 
 // --- Coroutine launcher ---
 
-void Lua::Execute(const char* code) {
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-    RegisterFunctions(L);
+void Lua::Init() {
+    main_L = luaL_newstate();
+    luaL_openlibs(main_L);
+    RegisterFunctions(main_L);
+    hooks_set_lua_state(main_L);
+}
 
-    lua_State* thread = lua_newthread(L);
+void Lua::Execute(const char* code) {
+    if (!main_L) Lua::Init();
+    lua_State* thread = lua_newthread(main_L);
     if (luaL_loadstring(thread, code) == LUA_OK) {
         g_coroutines.push_back({ thread, 0.0, false });
     }
     else {
         const char* error = lua_tostring(thread, -1);
         if (error) printf("%s\n", error);
-        lua_close(L);
     }
 }
-
-// --- Coroutine updater ----
 
 void Lua::UpdateLuaCoroutines() {
     double now = CurrentTime();
     for (auto& co : g_coroutines) {
         if (co.finished) continue;
-        if (co.resumeTime > now) continue;
+        if (co.resumeTime > now) {
+            continue;
+        }
         int nres = 0;
         int result = lua_resume(co.thread, nullptr, 0, &nres);
         if (result == LUA_YIELD) {
@@ -221,4 +226,8 @@ void Lua::UpdateLuaCoroutines() {
 
 bool Lua::isGameReady() {
     return world.isLoaded();
+}
+
+lua_State* GetMainLuaState() {
+    return main_L;
 }

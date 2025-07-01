@@ -39,7 +39,7 @@ void ImGuiHook::Render() {
 
 	bool executePressed = ImGui::Button("Execute");
 	if (executePressed) {
-		if (settings::injected) {
+		if (!settings::injected) {
 			std::string code = editor.GetText();
 			Lua::Execute(code.c_str());
 		}
@@ -47,7 +47,8 @@ void ImGuiHook::Render() {
 			ImGui::SetTooltip("Join in the game!");
 		}
 	}
-	
+
+	hook_Run("DrawGui", 0);
 	DrawGui();
 
 	ImGui::End();
@@ -68,6 +69,7 @@ void UpdateStatus() {
 
 void ImGuiHook::MainThread() {
 	CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UpdateStatus, nullptr, 0, nullptr);
+	Lua::Init();
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
@@ -75,7 +77,7 @@ void ImGuiHook::MainThread() {
 	SetConsoleTitleA("Aetheris console");
 	while (true) {
 		Lua::UpdateLuaCoroutines();
-		Sleep(1);
+		hook_Run("Think", 0);
 	}
 }
 

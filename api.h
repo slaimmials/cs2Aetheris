@@ -1,18 +1,15 @@
 #pragma once
 #include <Windows.h>
+#include "lua.hpp"
 #include "game/game.h"
 #include "game/drawing.h"
 #include "game/view.h"
 #include "game/lua_additions.hpp"
-
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
+#include "game/hooks.h"
 
 namespace Lua {
-	extern void Execute(const char* code);
-	extern void UpdateLuaCoroutines();
-	extern bool isGameReady();
+    void Init();
+    void Execute(const char* code);
+    void UpdateLuaCoroutines();
+    bool isGameReady();
 }

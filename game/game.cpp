@@ -121,6 +121,14 @@ int lua_player_index(lua_State* L) {
         lua_pushstring(L, proxy->player.name().c_str());
         return 1;
     }
+    if (strcmp(key, "isValid") == 0) {
+        lua_pushcfunction(L, [](lua_State* L) {
+            Player* plr = (Player*)luaL_checkudata(L, 1, "MetaDrawTextL");
+			lua_pushboolean(L, plr->isValid());
+            return 1;
+            });
+        return 1;
+    }
     lua_pushnil(L);
     return 1;
 }
